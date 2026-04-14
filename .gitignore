@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+gesture_log.txt
+Thumbs.db
+.DS_Store
