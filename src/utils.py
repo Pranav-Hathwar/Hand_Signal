@@ -41,7 +41,8 @@ class SpeechEngine:
             self.engine.setProperty("rate", 150)
             self.worker = Thread(target=self._run, daemon=True)
             self.worker.start()
-        except Exception:
+        except Exception as exc:
+            print(f"[Speech] Text-to-speech unavailable: {exc}")
             self.enabled = False
             self.engine = None
             self.worker = None

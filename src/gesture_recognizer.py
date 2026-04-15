@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter, deque
-from math import acos, hypot
+from math import acos, hypot, pi
 from typing import Deque, Dict, List, Tuple
 
 Point = Tuple[int, int]
@@ -35,6 +35,7 @@ class GestureRecognizer:
         "11001": "I Love You",
         "11000": "L Sign",
         "00001": "Pinky",
+        "00111": "W Sign",
     }
 
     def __init__(self, smoothing_window: int = 7) -> None:
@@ -53,13 +54,21 @@ class GestureRecognizer:
             self.histories.pop(key, None)
         return removed
 
-    def get_stable_gesture(self, landmarks: List[Point], handedness: str, hand_key: str) -> str:
+    def get_stable_gesture(
+        self, landmarks: List[Point], handedness: str, hand_key: str
+    ) -> Tuple[str, float]:
+        """Return (gesture_name, confidence) where confidence is 0.0–1.0."""
         gesture = self.classify(landmarks, handedness)
         history = self.histories.setdefault(hand_key, deque(maxlen=self.smoothing_window))
         history.append(gesture)
-        return Counter(history).most_common(1)[0][0]
+        counter = Counter(history)
+        best_gesture, best_count = counter.most_common(1)[0]
+        confidence = best_count / len(history)
+        return best_gesture, confidence
 
     def classify(self, landmarks: List[Point], handedness: str) -> str:
+        if len(landmarks) < 21:
+            return "Unknown"
         states = self.get_finger_states(landmarks, handedness)
         pattern = self._pattern(states)
 
@@ -141,7 +150,7 @@ class GestureRecognizer:
             return 0.0
         cosine = (ab_x * cb_x + ab_y * cb_y) / (ab_norm * cb_norm)
         cosine = max(-1.0, min(1.0, cosine))
-        return acos(cosine) * 180.0 / 3.141592653589793
+        return acos(cosine) * 180.0 / pi
 
     @staticmethod
     def _palm_center(landmarks: List[Point]) -> Point:
@@ -153,19 +162,20 @@ class GestureRecognizer:
     @staticmethod
     def get_gesture_descriptions() -> Dict[str, str]:
         return {
-            "0 / Fist": "All fingers are folded.",
-            "1": "Only the index finger is up.",
-            "2 / Peace": "Index and middle fingers are up.",
-            "3": "Index, middle, and ring fingers are up.",
-            "4": "Four fingers are up and the thumb is folded.",
-            "5 / Hello": "All five fingers are up.",
+            "0 / Fist":    "All fingers are folded down.",
+            "1":           "Only the index finger is up.",
+            "2 / Peace":   "Index and middle fingers are up.",
+            "3":           "Index, middle, and ring are up.",
+            "4":           "Four fingers up, no thumb.",
+            "5 / Hello":   "All five fingers are up.",
             "6 / Call Me": "Thumb and pinky are up.",
-            "Thumbs Up": "Only the thumb is up and clearly above the wrist.",
-            "Thumbs Down": "Only the thumb is up and clearly below the wrist.",
-            "Thumb": "Only the thumb is up (neutral direction).",
-            "OK": "Thumb and index fingertips touch while the other three fingers stay up.",
-            "Rock": "Index and pinky are up.",
-            "I Love You": "Thumb, index, and pinky are up.",
-            "L Sign": "Thumb and index finger are up.",
-            "Pinky": "Only the pinky finger is up.",
+            "OK":          "Pinch thumb+index, three fingers up.",
+            "Rock":        "Index and pinky are up.",
+            "I Love You":  "Thumb, index, and pinky are up.",
+            "L Sign":      "Thumb and index finger are up.",
+            "Pinky":       "Only the pinky finger is up.",
+            "W Sign":      "Middle, ring, and pinky are up.",
+            "Thumbs Up":   "Thumb pointing up above the wrist.",
+            "Thumbs Down": "Thumb pointing down below the wrist.",
+            "Thumb":       "Only the thumb (neutral direction).",
         }

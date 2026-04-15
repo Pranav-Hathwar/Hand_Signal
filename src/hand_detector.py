@@ -169,4 +169,7 @@ class HandDetector:
         return label
 
     def close(self) -> None:
-        self.hands.close()
+        try:
+            self.hands.close()
+        except Exception:
+            pass
